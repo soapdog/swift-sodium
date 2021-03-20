@@ -1,12 +1,10 @@
 import Foundation
 import Clibsodium
 
-public struct SecretBox {
+public class SecretBox {
     public let MacBytes = Int(crypto_secretbox_macbytes())
     public typealias MAC = Bytes
-}
 
-extension SecretBox {
     /**
      Encrypts a message with a shared secret key.
 
@@ -32,23 +30,22 @@ extension SecretBox {
      - Returns: The authenticated ciphertext and encryption nonce.
      */
     public func seal(message: Bytes, secretKey: Key) -> (authenticatedCipherText: Bytes, nonce: Nonce)? {
+        
         let nonce = self.nonce()
-
         guard let authenticatedCipherText = seal(message: message, secretKey: secretKey, nonce: nonce) else {
             return nil
         }
-
         return (authenticatedCipherText: authenticatedCipherText, nonce: nonce)
     }
-
+    
     /**
-     Encrypts a message with a shared secret key and a user-provided nonce.
-
+     Encrypts a message with a shared secret key.
+     
      - Parameter message: The message to encrypt.
      - Parameter secretKey: The shared secret key.
-     - Parameter nonce: The encryption nonce.
-
-     - Returns: The authenticated ciphertext.
+     - Parameter nonce: A nonce
+     
+     - Returns: The authenticated ciphertext and encryption nonce.
      */
     public func seal(message: Bytes, secretKey: Key, nonce: Nonce) -> Bytes? {
         guard secretKey.count == KeyBytes else { return nil }
@@ -59,8 +56,8 @@ extension SecretBox {
             message, UInt64(message.count),
             nonce,
             secretKey
-        ).exitCode else { return nil }
-
+            ).exitCode else { return nil }
+        
         return authenticatedCipherText
     }
 
@@ -89,9 +86,7 @@ extension SecretBox {
 
         return (cipherText: cipherText, nonce: nonce, mac: mac)
     }
-}
 
-extension SecretBox {
     /**
      Decrypts a message with a shared secret key.
 
@@ -165,10 +160,9 @@ extension SecretBox: NonceGenerator {
     public var NonceBytes: Int { return Int(crypto_secretbox_noncebytes()) }
     public typealias Nonce = Bytes
 }
-
 extension SecretBox: SecretKeyGenerator {
     public typealias Key = Bytes
     public var KeyBytes: Int { return Int(crypto_secretbox_keybytes()) }
 
-    public static let keygen: (_ k: UnsafeMutablePointer<UInt8>) -> Void = crypto_secretbox_keygen
+    static let keygen: (_ k: UnsafeMutablePointer<UInt8>) -> Void = crypto_secretbox_keygen
 }
